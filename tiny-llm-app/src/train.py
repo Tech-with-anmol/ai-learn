@@ -6,19 +6,7 @@ from sklearn.preprocessing import LabelEncoder  # For encoding categorical label
 import tensorflow as tf  # Importing TensorFlow for building and training the neural network
 from model import create_model  # Importing the model creation function from model.py
 import os  # For handling file paths
-
-# Function to load the dataset from a CSV file
-def load_dataset(file_path):
-    """
-    Load the dataset from a CSV file.
-
-    Args:
-        file_path (str): The path to the CSV file.
-
-    Returns:
-        DataFrame: A pandas DataFrame containing the dataset.
-    """
-    return pd.read_csv(file_path)
+from utils import load_dataset  # Import the load_dataset function from utils.py
 
 # Function to preprocess the dataset
 def preprocess_data(df):
@@ -39,7 +27,7 @@ def preprocess_data(df):
     return X, y
 
 # Function to train the model
-def train_model(X_train, y_train, X_val, y_val):
+def train_model(X_train, y_train, X_val, y_val, vocab_size, embedding_dim, num_classes):
     """
     Train the neural network model.
 
@@ -48,11 +36,14 @@ def train_model(X_train, y_train, X_val, y_val):
         y_train (array-like): Training labels.
         X_val (array-like): Validation features.
         y_val (array-like): Validation labels.
+        vocab_size (int): Size of the vocabulary.
+        embedding_dim (int): Dimension of the embedding layer.
+        num_classes (int): Number of output classes.
 
     Returns:
         Model: The trained model.
     """
-    model = create_model()  # Create the model
+    model = create_model(vocab_size, embedding_dim, num_classes)  # Create the model
     model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])  # Compile the model
 
     # Train the model with the training data
@@ -63,16 +54,29 @@ def train_model(X_train, y_train, X_val, y_val):
 # Main function to execute the training process
 def main():
     # Load the dataset
-    df = load_dataset(os.path.join('data', 'dataset.csv'))  # Load the dataset from the data directory
+    df = load_dataset(os.path.join('data', 'dataset.json'))  # Load the dataset from the data directory
 
     # Preprocess the data
     X, y = preprocess_data(df)  # Get features and labels
+
+    # Tokenize the text data
+    tokenizer = tf.keras.preprocessing.text.Tokenizer()
+    tokenizer.fit_on_texts(X)
+    X = tokenizer.texts_to_sequences(X)
+    X = tf.keras.preprocessing.sequence.pad_sequences(X, padding='post')
+
+    # Save the tokenizer
+    with open('tokenizer.pickle', 'wb') as handle:
+        pickle.dump(tokenizer, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     # Split the data into training and validation sets
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)  # 80-20 split
 
     # Train the model
-    model = train_model(X_train, y_train, X_val, y_val)  # Train the model with the training data
+    vocab_size = len(tokenizer.word_index) + 1
+    embedding_dim = 50
+    num_classes = len(set(y))
+    model = train_model(X_train, y_train, X_val, y_val, vocab_size, embedding_dim, num_classes)  # Train the model with the training data
 
     # Save the trained model
     model.save('trained_model.h5')  # Save the model to a file

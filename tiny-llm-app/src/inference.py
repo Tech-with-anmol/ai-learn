@@ -5,6 +5,7 @@ import pandas as pd  # For data manipulation and analysis
 import tensorflow as tf  # For loading the trained model and making predictions
 from tensorflow.keras.preprocessing.sequence import pad_sequences  # For padding sequences to the same length
 from model import create_model  # Import the model creation function from model.py
+import pickle  # For loading the tokenizer
 
 # Function to load the trained model
 def load_model(model_path):
@@ -58,15 +59,14 @@ def main():
     """
     Main function to execute the inference process.
     """
-    model_path = 'path/to/your/saved/model.h5'  # Specify the path to the saved model
-    tokenizer_path = 'path/to/your/tokenizer.pickle'  # Specify the path to the tokenizer
+    model_path = 'trained_model.h5'  # Specify the path to the saved model
+    tokenizer_path = 'tokenizer.pickle'  # Specify the path to the tokenizer
     max_length = 100  # Define the maximum length for input sequences
 
     # Load the trained model
     model = load_model(model_path)
 
     # Load the tokenizer (assuming it's saved as a pickle file)
-    import pickle
     with open(tokenizer_path, 'rb') as handle:
         tokenizer = pickle.load(handle)  # Load the tokenizer
 
