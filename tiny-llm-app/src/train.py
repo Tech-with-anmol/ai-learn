@@ -7,6 +7,7 @@ import tensorflow as tf  # Importing TensorFlow for building and training the ne
 from model import create_model  # Importing the model creation function from model.py
 import os  # For handling file paths
 from utils import load_dataset  # Import the load_dataset function from utils.py
+import pickle  # For saving the tokenizer
 
 # Function to preprocess the dataset
 def preprocess_data(df):
@@ -19,11 +20,19 @@ def preprocess_data(df):
     Returns:
         tuple: A tuple containing the features (X) and labels (y).
     """
-    # Encoding the labels into numerical format
-    label_encoder = LabelEncoder()
-    df['label'] = label_encoder.fit_transform(df['label'])  # Assuming 'label' is the column name for labels
-    X = df['text']  # Assuming 'text' is the column name for input text
-    y = df['label']
+    df['label'] = 1  # Assuming 'chosen' is the positive class
+    df_rejected = df.copy()
+    df_rejected['text'] = df_rejected['rejected']
+    df_rejected['label'] = 0  # Assuming 'rejected' is the negative class
+
+    df_chosen = df.copy()
+    df_chosen['text'] = df_chosen['chosen']
+    df_chosen['label'] = 1
+
+    df_combined = pd.concat([df_chosen, df_rejected])
+
+    X = df_combined['text']
+    y = df_combined['label']
     return X, y
 
 # Function to train the model
@@ -53,33 +62,26 @@ def train_model(X_train, y_train, X_val, y_val, vocab_size, embedding_dim, num_c
 
 # Main function to execute the training process
 def main():
-    # Load the dataset
-    df = load_dataset(os.path.join('data', 'dataset.json'))  # Load the dataset from the data directory
+    df = load_dataset(os.path.join('data', 'dataset.json'))
 
-    # Preprocess the data
-    X, y = preprocess_data(df)  # Get features and labels
+    X, y = preprocess_data(df)
 
-    # Tokenize the text data
     tokenizer = tf.keras.preprocessing.text.Tokenizer()
     tokenizer.fit_on_texts(X)
     X = tokenizer.texts_to_sequences(X)
     X = tf.keras.preprocessing.sequence.pad_sequences(X, padding='post')
 
-    # Save the tokenizer
     with open('tokenizer.pickle', 'wb') as handle:
         pickle.dump(tokenizer, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    # Split the data into training and validation sets
-    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)  # 80-20 split
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Train the model
     vocab_size = len(tokenizer.word_index) + 1
     embedding_dim = 50
-    num_classes = len(set(y))
-    model = train_model(X_train, y_train, X_val, y_val, vocab_size, embedding_dim, num_classes)  # Train the model with the training data
+    num_classes = 2  # Binary classification
+    model = train_model(X_train, y_train, X_val, y_val, vocab_size, embedding_dim, num_classes)
 
-    # Save the trained model
-    model.save('trained_model.h5')  # Save the model to a file
+    model.save('trained_model.keras')  # Save the model in the native Keras format
 
 if __name__ == '__main__':
-    main()  # Execute the main function when the script is run
+    main()

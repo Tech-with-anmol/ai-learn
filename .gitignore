@@ -1,1 +1,4 @@
 venv
+*.keras
+*.h5
+*.pickle

@@ -59,7 +59,7 @@ def main():
     """
     Main function to execute the inference process.
     """
-    model_path = 'trained_model.h5'  # Specify the path to the saved model
+    model_path = 'trained_model.keras'  # Specify the path to the saved model
     tokenizer_path = 'tokenizer.pickle'  # Specify the path to the tokenizer
     max_length = 100  # Define the maximum length for input sequences
 
